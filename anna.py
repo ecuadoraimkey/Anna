@@ -22,12 +22,17 @@ class Song(Thread):
         print(self.seg.frame_rate)
         Thread.__init__(self, *args, **kwargs)
         self.start()
+        self.stream = None
 
     def pause(self):
         self.__is_paused = True
 
     def play(self):
         self.__is_paused = False
+    
+    def __stop_stream(self):
+        self.stream.stop_stream()
+        self.stream.close()
 
     def __get_stream(self):
         return self.p.open(format=self.p.get_format_from_width(self.seg.sample_width),
@@ -36,7 +41,7 @@ class Song(Thread):
                            output=True)
 
     def run(self):
-        stream = self.__get_stream()
+        self.stream = self.__get_stream()
         chunk_count = 0
         chunks = make_chunks(self.seg, 100)
         while chunk_count <= len(chunks):
@@ -44,9 +49,9 @@ class Song(Thread):
                 data = (chunks[chunk_count])._data
                 chunk_count += 1
             else:
-                free = stream.get_write_available()
+                free = self.stream.get_write_available()
                 data = chr(0)*free
-            stream.write(data)
+            self.stream.write(data)
 
-        stream.stop_stream()
+        self.stream.stop_stream()
         self.p.terminate()
